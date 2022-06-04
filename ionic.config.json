@@ -1,0 +1,7 @@
+{
+  "name": "ol-vue",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue"
+}
