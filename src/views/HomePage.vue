@@ -4,28 +4,20 @@
       <ion-toolbar>
         <ion-title>Blank</ion-title>
         <ion-buttons slot="end">
-          <ion-button @click="trackLocation()">Get Location</ion-button>
+          <ion-button @click="trackLocation()">Track Location</ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
     <ion-content :fullscreen="true">
-      <ion-header collapse="condense">
-        <ion-toolbar>
-          <ion-title size="large">Blank</ion-title>
-        </ion-toolbar>
-      </ion-header>
-        <app-map
-          :lat="location.lat"
-          :lng="location.lng"
-          :zoom="location.zoom"
-        />
+      <app-map :lat="location.lat" :lng="location.lng" :zoom="location.zoom" />
     </ion-content>
   </ion-page>
 </template>
 
 <script lang="ts" setup>
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+
 import AppMap from '../components/AppMap.vue';
 import {
   IonContent,
@@ -35,19 +27,21 @@ import {
   IonToolbar,
   IonButtons,
   IonButton,
-  onIonViewDidEnter
 } from '@ionic/vue';
 import { Geolocation } from '@capacitor/geolocation';
-import { ref, onUnmounted } from 'vue';
+import { Capacitor } from '@capacitor/core';
+import { ref, onUnmounted, onMounted } from 'vue';
+
 const trackingRef = ref();
 const isLoaded = ref(false);
+
 const location = ref({
   lng: -71.418884,
   lat: 41.825226,
   zoom: 10,
 });
-onIonViewDidEnter(() => {
-  isLoaded.value = true
+onMounted(() => {
+  isLoaded.value = true;
   requestPermission();
 });
 onUnmounted(() => {
@@ -56,9 +50,11 @@ onUnmounted(() => {
   }
 });
 const requestPermission = async () => {
-  await Geolocation.requestPermissions();
-  getLocation();
-}
+  if (Capacitor.isNativePlatform()) {
+    await Geolocation.requestPermissions();
+  }
+  await getLocation();
+};
 const getLocation = async () => {
   const loc = await Geolocation.getCurrentPosition();
   location.value = {
@@ -68,13 +64,14 @@ const getLocation = async () => {
   };
 };
 const trackLocation = async () => {
-  trackingRef.value = Geolocation.watchPosition({}, (loc) => {
-    location.value = {
-
-      lng: loc!.coords.longitude,
-      lat: loc!.coords.latitude,
-      zoom: 10,
-    };
-  });
+  if (trackingRef.value !== undefined) {
+    trackingRef.value = Geolocation.watchPosition({}, (loc) => {
+      location.value = {
+        lng: loc!.coords.longitude,
+        lat: loc!.coords.latitude,
+        zoom: 10,
+      };
+    });
+  }
 };
 </script>

@@ -5,6 +5,7 @@
   </div>
 </template>
 <script lang="ts" setup>
+import 'ol/ol.css';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
@@ -12,7 +13,9 @@ import OSM from 'ol/source/OSM';
 import { fromLonLat } from 'ol/proj';
 import Overlay from 'ol/Overlay';
 import OverlayPositioning from 'ol/OverlayPositioning';
-import { ref, onMounted, defineProps, watch } from 'vue';
+
+import { ref, onMounted, watch, onUnmounted } from 'vue';
+
 const props = defineProps({
   lng: { type: Number, default: -71.418884 },
   lat: { type: Number, default: 41.825226 },
@@ -20,37 +23,38 @@ const props = defineProps({
 });
 const mapContainerRef = ref();
 const markerRef = ref();
-const tileLayer = new TileLayer({
-  source: new OSM(),
-});
-// const markerOverlay = ref<Overlay>();
-// const mapInst = ref<Map>();
-let map = new Map({
-  layers: [tileLayer],
+
+const tile = new TileLayer({ source: new OSM() });
+let mapInst = new Map({
+  layers: [tile],
   view: new View({
     center: fromLonLat([props.lng, props.lat]),
     zoom: props.zoom,
   }),
   controls: [],
 });
-let markerOverlay = new Overlay({
+let markerInst = new Overlay({
   positioning: OverlayPositioning.CENTER_CENTER,
   stopEvent: false,
 });
-
 onMounted(() => {
-  map.setTarget(mapContainerRef.value as unknown as HTMLDivElement);
-  map.render();
-
-  markerOverlay.setElement(markerRef.value as unknown as HTMLDivElement);
-  map.addOverlay(markerOverlay);
-  markerOverlay.setPosition(fromLonLat([props.lng, props.lat]));
-  map.getView().animate({ center: fromLonLat([props.lng, props.lat]) });
+  setTimeout(() => {
+    mapInst.setTarget(mapContainerRef.value);
+    markerInst.setElement(markerRef.value);
+    mapInst.getView().animate({ center: fromLonLat([props.lng, props.lat]) });
+    markerInst.setPosition(fromLonLat([props.lng, props.lat]));
+    mapInst.addOverlay(markerInst);
+  }, 500);
+});
+onUnmounted(() => {
+  console.log('on map unmount');
+  mapInst.dispose();
+  markerInst.dispose();
 });
 
 watch([() => props.lat, () => props.lng, () => props.zoom], () => {
-  markerOverlay.setPosition(fromLonLat([props.lng, props.lat]));
-  map.getView().animate({ center: fromLonLat([props.lng, props.lat]) });
+  markerInst.setPosition(fromLonLat([props.lng, props.lat]));
+  mapInst.getView().animate({ center: fromLonLat([props.lng, props.lat]) });
 });
 </script>
 <style>
@@ -58,6 +62,8 @@ watch([() => props.lat, () => props.lng, () => props.zoom], () => {
 .map-el {
   height: 100%;
   width: 100%;
+  min-height: 100%;
+  min-width: 100%;
 }
 .map-marker {
   width: 22px;
